@@ -8,9 +8,6 @@
 /* Allow per-thread level disabling GPU path */
 MPL_TLS bool MPIR_disable_gpu = false;
 
-static int get_local_gpu_stream(MPIR_Comm * comm_ptr, MPL_gpu_stream_t * gpu_stream);
-static int allocate_enqueue_request(MPIR_Comm * comm_ptr, MPIR_Request ** req);
-
 /* send enqueue */
 struct send_data {
     const void *buf;
@@ -506,52 +503,6 @@ int MPIR_Waitall_enqueue_impl(int count, MPI_Request * array_of_requests,
     return mpi_errno;
   fn_fail:
     goto fn_exit;
-}
-
-/* static utility */
-
-static int get_local_gpu_stream(MPIR_Comm * comm_ptr, MPL_gpu_stream_t * gpu_stream)
-{
-    int mpi_errno = MPI_SUCCESS;
-
-    MPIR_Stream *stream_ptr = NULL;
-    if (comm_ptr->stream_comm_type == MPIR_STREAM_COMM_SINGLE) {
-        stream_ptr = comm_ptr->stream_comm.single.stream;
-    } else if (comm_ptr->stream_comm_type == MPIR_STREAM_COMM_MULTIPLEX) {
-        stream_ptr = comm_ptr->stream_comm.multiplex.local_streams[comm_ptr->rank];
-    }
-
-    MPIR_ERR_CHKANDJUMP(!stream_ptr || stream_ptr->type != MPIR_STREAM_GPU,
-                        mpi_errno, MPI_ERR_OTHER, "**notgpustream");
-    *gpu_stream = stream_ptr->u.gpu_stream;
-
-  fn_exit:
-    return mpi_errno;
-  fn_fail:
-    goto fn_exit;
-}
-
-static int allocate_enqueue_request(MPIR_Comm * comm_ptr, MPIR_Request ** req)
-{
-    int mpi_errno = MPI_SUCCESS;
-
-    MPIR_Stream *stream_ptr = NULL;
-    if (comm_ptr->stream_comm_type == MPIR_STREAM_COMM_SINGLE) {
-        stream_ptr = comm_ptr->stream_comm.single.stream;
-    } else if (comm_ptr->stream_comm_type == MPIR_STREAM_COMM_MULTIPLEX) {
-        stream_ptr = comm_ptr->stream_comm.multiplex.local_streams[comm_ptr->rank];
-    }
-    MPIR_Assert(stream_ptr);
-
-    int vci = stream_ptr->vci;
-    MPIR_Assert(vci > 0);
-
-    /* stream vci are only accessed within a serialized context */
-    (*req) = MPIR_Request_create_from_pool_safe(MPIR_REQUEST_KIND__ENQUEUE, vci, 1);
-    (*req)->u.enqueue.stream_ptr->u.gpu_stream = stream_ptr->u.gpu_stream;
-    (*req)->u.enqueue.real_request = NULL;
-
-    return mpi_errno;
 }
 
 /* ---- collectives --------------------- */
