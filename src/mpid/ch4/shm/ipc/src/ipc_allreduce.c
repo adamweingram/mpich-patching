@@ -101,7 +101,7 @@ int MPIDI_IPC_allreduce_stream(const void *sendbuf, void *recvbuf, MPI_Aint coun
     }
 
     MPL_gpu_stream_t gpu_stream;
-    mpi_errno = get_local_gpu_stream(comm, &gpu_stream);
+    mpi_errno = MPIR_get_local_gpu_stream(comm, &gpu_stream);
     MPIR_ERR_CHECK(mpi_errno);
 
     mpi_errno = MPIR_Localcopy_stream(sendbuf, count, datatype, recvbuf, count, datatype, &gpu_stream);
