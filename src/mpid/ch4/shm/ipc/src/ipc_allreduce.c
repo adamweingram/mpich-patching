@@ -12,6 +12,8 @@
 #include "../gpu/gpu_post.h"
 #include "ipc_p2p.h"
 #include "yaksa.h"
+#include "typerep_internal.h"
+#include "typerep_util.h"
 
 int MPIDI_IPC_allreduce(const void *sendbuf, void *recvbuf, MPI_Aint count,
                         MPI_Datatype datatype, MPI_Op op,
